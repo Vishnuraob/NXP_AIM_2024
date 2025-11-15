@@ -1,31 +1,61 @@
 NXP-CODES
-This repository contains the core ROS nodes used to run an autonomous NXP-style car in the Gazebo simulator.
-The project focuses on three main parts: lane following, steering vector generation, and basic object recognition for obstacle handling.
+This repository hosts the essential ROS components that drive an NXP-style autonomous car inside the Gazebo environment. The system is organized around three core functions: lane perception, steering computation, and obstacle awareness.
+Main Components
 
-Main Files
-1. ros_line_follower.py
-This node is responsible for lane detection and basic control.
 
-Subscribes to the camera feed from Gazebo
-Detects lane lines / track boundaries
-Calculates the lateral error and heading error
-Sends target steering values (or errors) to be handled by the control logic
-In short: this file makes the car “see” the track and decide how much it should turn.
+ros_line_follower.py
+This module handles visual lane interpretation and preliminary control decisions.
 
-2. ros_edge_vectors.py
-This node focuses on steering vector generation.
 
-Takes the lane/position error from the line follower
-Computes a smooth steering vector for the car
-Can include simple PID or math-based smoothing to avoid jerky motion
-In short: this file converts lane information into a clean steering command.
 
-3. ros_obj_recg.py (Object Recognition)
-This node deals with obstacle and object detection.
 
-Processes sensor or image data to detect objects on or near the track
-Flags obstacles that are too close to the car
-Can publish stop/slow-down signals or warnings to other nodes
-In short: this file helps the car stay safe by reacting to obstacles.
+Reads the simulated camera stream
 
-Together, these modules create a simple end-to-end autonomous driving pipeline in simulation: the car detects the lane, computes how to steer, and reacts to objects in its path.
+
+Extracts lane boundaries or track markings
+
+
+Evaluates how far the vehicle is from the ideal center line and how much it is misaligned
+
+
+Publishes steering-related errors or target angles for the next stage
+
+
+In essence, this node gives the car the ability to perceive the track and determine the direction it should aim for.
+
+
+ros_edge_vectors.py
+This module is dedicated to generating stable steering commands.
+
+
+
+
+Receives deviation and orientation errors from the line follower
+
+
+Produces a refined steering vector
+
+
+Applies smoothing logic or simple feedback control to avoid abrupt motion
+
+
+Effectively, this node turns raw lane information into a steady and usable steering command for the vehicle.
+
+
+ros_obj_recg.py
+This component manages object and obstacle awareness.
+
+
+
+
+Analyzes camera or sensor inputs to identify nearby obstacles
+
+
+Determines whether an object may interfere with the vehicle’s path
+
+
+Issues alerts or slow/stop signals to the rest of the system
+
+
+Overall, this node keeps the vehicle aware of its surroundings so it can react safely.
+These three modules together form a complete pipeline in simulation: the car understands the lane, computes smooth steering, and responds intelligently to objects encountered along the track.
