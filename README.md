@@ -1,76 +1,60 @@
 NXP-CODES
-This repository contains the core ROS nodes used to operate an autonomous NXP-style vehicle inside the Gazebo simulator. The system is built around three major functions: lane interpretation, steering computation, and basic obstacle handling.
-
-Overview
-The project is structured into three main ROS nodes:
+This repository contains the core ROS nodes used to run an autonomous NXP-style vehicle in the Gazebo simulator. The system is organized into three main parts: lane extraction, steering vector generation, and simple obstacle handling.
 
 
-Lane extraction and tracking
+ros_line_follower.py
+This node is responsible for interpreting the simulated camera feed and identifying the track.
 
 
-Steering vector generation
 
 
-Object and obstacle recognition
+Reads the camera data from Gazebo
 
 
-Together they create a simple perception-to-control pipeline for autonomous driving in simulation.
-
-1. ros_line_follower.py
-This node performs lane perception and produces initial control cues.
-Key Functions
-
-
-Subscribes to the simulated camera feed
-
-
-Identifies lane boundaries or track edges
+Detects lane boundaries or track edges
 
 
 Computes lateral offset and heading deviation
 
 
-Publishes steering targets or error values for downstream control
+Publishes steering-related errors or target angles
 
 
-Summary
-Provides the vehicle with lane understanding and decides the general turning direction.
-
-2. ros_edge_vectors.py
-This node converts lane-related errors into a smooth steering command.
-Key Functions
+In short, this file gives the car the ability to understand the lane and determine the required turning direction.
 
 
-Receives deviation and orientation errors from the line follower
+ros_edge_vectors.py
+This node generates the steering command from the lane information.
 
 
-Generates a stable steering vector
 
 
-Uses smoothing or a simple control approach to limit sudden movements
+Receives deviation and heading error from the line follower
 
 
-Summary
-Transforms raw perception data into a clean steering instruction for the vehicle.
-
-3. ros_obj_recg.py
-This node focuses on basic obstacle awareness.
-Key Functions
+Produces a stable steering vector
 
 
-Processes camera or sensor data to detect nearby objects
+Uses smoothing or basic feedback control to avoid sudden movements
 
 
-Determines potential risks or obstructions
+This module converts raw perception outputs into a smooth and usable steering instruction.
 
 
-Publishes warnings or slow/stop signals to the control system
+ros_obj_recg.py
+This node handles obstacle detection and basic safety logic.
 
 
-Summary
-Ensures the vehicle can react safely when obstacles appear on the track.
 
-Pipeline
-These three components combine to form a functional autonomous driving flow in Gazebo:
-Lane Detection → Steering Vector Generation → Obstacle Handling
-The result is a simple, modular, and simulation-ready driving stack for NXP-style autonomous vehicles.
+
+Processes sensor or image data to identify objects on or near the track
+
+
+Checks whether any detected object could block the vehicle’s path
+
+
+Publishes warnings or slow/stop signals
+
+
+This file ensures the vehicle can respond safely when obstacles appear ahead.
+Overall, these three modules form a simple perception-to-control pipeline: the system detects the lane, computes the steering direction, and responds to obstacles during simulation.
