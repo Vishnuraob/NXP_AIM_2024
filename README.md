@@ -1,60 +1,343 @@
-NXP-CODES
-This repository contains the core ROS nodes used to run an autonomous NXP-style vehicle in the Gazebo simulator. The system is organized into three main parts: lane extraction, steering vector generation, and simple obstacle handling.
+Autonomous Rover – NXP AIM Contest (ROS-Based Perception & Control)
 
+Project Overview
 
-ros_line_follower.py
-This node is responsible for interpreting the simulated camera feed and identifying the track.
+This project was developed as part of the NXP AIM (Autonomous Innovation Mission) Contest.
+It implements a ROS-based autonomous rover capable of:
+•	Line following using vision-based edge vectors
+•	Lane center estimation and motion control
+•	Object recognition for navigation decisions
+The system is modular, scalable, and designed for real-time autonomous operation using Robot Operating System (ROS).
 
+Technologies Used
+•	ROS (Robot Operating System)
+•	Python (ROS nodes)
+•	OpenCV
+•	NXP hardware platform (NavQ / compatible compute unit)
+•	Camera-based perception
+•	Differential drive rover
 
+Project Architecture
+Camera Input
+     |
+     v
++----------------------+
+| ros_edge_vectors.py  |
+| (Edge Detection)     |
++----------------------+
+           |
+           v
++----------------------+
+| ros_line_follower.py |
+| (Lane Center Control)|
++----------------------+
+           |
+           v
++----------------------+
+| ros_object_recog.py  |
+| (Object Detection)   |
++----------------------+
+           |
+           v
+      Rover Motion
 
+All three ROS nodes run simultaneously, publishing and subscribing to ROS topics to achieve autonomous navigation.
 
-Reads the camera data from Gazebo
-
-
-Detects lane boundaries or track edges
-
-
-Computes lateral offset and heading deviation
-
-
-Publishes steering-related errors or target angles
-
-
-In short, this file gives the car the ability to understand the lane and determine the required turning direction.
-
+ROS Nodes Description
 
 ros_edge_vectors.py
-This node generates the steering command from the lane information.
 
+Vision-Based Road Edge Vector Extraction (ROS 2)
+Overview
+ros_edge_vectors.py is a ROS 2 perception node developed for the NXP AIM (Autonomous Innovation Mission) Contest.
+Its purpose is to detect road/lane edges from a camera feed and publish them as geometric vectors that can be consumed by downstream control nodes (e.g., line following or steering control).
+The node processes compressed camera images, extracts left and right road edges, and publishes up to two edge vectors in real time.
+This node forms the first stage of the autonomous navigation pipeline.
 
+Key Responsibilities
+•	Subscribe to compressed camera images
+•	Detect black road edges using image thresholding
+•	Extract contours and compute edge vectors
+•	Filter weak/noisy detections
+•	Publish up to two reliable edge vectors
+•	Publish debug images for visualization and tuning
 
+Technologies Used
+•	Python (ROS 2)
+•	OpenCV
+•	NumPy
+•	Custom ROS 2 message types
+•	Real-time image processing
+Built using:
+•	Robot Operating System (ROS 2)
+•	Developed for NXP Semiconductors AIM Contest
 
-Receives deviation and heading error from the line follower
+ROS Interfaces
+Subscribed Topics
+Topic	Message Type	Description
+/camera/image_raw/compressed	sensor_msgs/CompressedImage	Input camera feed
 
+Published Topics
+Topic	Message Type	Description
+/edge_vectors	synapse_msgs/EdgeVectors	Detected road edge vectors
+/debug_images/thresh_image	sensor_msgs/CompressedImage	Thresholded binary image
+/debug_images/vector_image	sensor_msgs/CompressedImage	Image with drawn vectors
 
-Produces a stable steering vector
+Edge Vector Concept
+Each edge is represented as a vector defined by two points:
+[x1, y1] → [x2, y2]
+•	Up to two vectors are published per frame
+•	One from the left half of the image
+•	One from the right half of the image
+•	Vectors closest to the rover are prioritized
 
+Image Processing Pipeline
+1.	Decode compressed image
+2.	Convert image to grayscale
+3.	Apply binary inverse threshold to isolate black edges
+4.	Crop bottom portion of image (region of interest)
+5.	Detect contours
+6.	Compute vectors using min/max Y coordinates
+7.	Reject vectors below minimum magnitude
+8.	Sort vectors by distance from rover
+9.	Select best left and right vectors
+10.	Publish results
 
-Uses smoothing or basic feedback control to avoid sudden movements
+Region of Interest Strategy
+Only the bottom 40% of the image is processed:
+VECTOR_IMAGE_HEIGHT_PERCENTAGE = 0.40
+This:
+•	Reduces noise
+•	Improves performance
+•	Focuses on road area closest to the rover
 
+Vector Filtering Logic
+•	Vectors with magnitude below 2.5 pixels are discarded
+•	Vectors are sorted by distance from the rover center
+•	Only the closest valid vectors are published
+•	Ensures stable downstream control behavior
 
-This module converts raw perception outputs into a smooth and usable steering instruction.
+Debug Visualization
+The node publishes two debug streams:
+•	Threshold Image
+Helps tune lighting and threshold values
+•	Vector Image
+Displays detected contours and selected vectors
+These can be viewed using Foxglove or RViz.
 
+Output Message (EdgeVectors)
+Published message contains:
+•	Image height and width
+•	Vector count (0 / 1 / 2)
+•	Coordinates of each detected vector
+This format allows easy integration with control and planning nodes.
 
-ros_obj_recg.py
-This node handles obstacle detection and basic safety logic.
+How This Node Fits in the System
+Camera
+  ↓
+ros_edge_vectors.py
+  ↓
+Edge Vectors
+  ↓
+Line Follower / Steering Controller
+This node does not control motion directly.
+It focuses purely on perception, following clean separation of concerns.
 
+How to Run
+ros2 run <your_package> ros_edge_vectors.py
+Ensure:
+•	Camera node is running
+•	synapse_msgs package is built
+•	ROS 2 environment is sourced
 
+ros_line_follower.py
 
+Autonomous Line Following & Obstacle-Aware Control (ROS 2)
+Overview
+ros_line_follower.py is a ROS 2 control node developed for the NXP AIM (Autonomous Innovation Mission) Contest.
+It consumes edge vectors generated by the vision pipeline and converts them into real-time steering and speed commands for an autonomous rover.
+The node integrates:
+•	Vision-based lane following
+•	PID steering control
+•	Obstacle avoidance using LiDAR
+•	Ramp/bridge detection
+•	Manual-mode rover actuation via joystick messages
+This node acts as the decision and control layer of the autonomous stack.
 
-Processes sensor or image data to identify objects on or near the track
+Role in the System
+Camera
+  ↓
+ros_edge_vectors.py   (Perception)
+  ↓
+ros_line_follower.py  (Control & Decision)
+  ↓
+Rover Motion (Steering + Speed)
+This node does not perform vision processing.
+It focuses purely on motion control and safety logic.
 
+Technologies Used
+•	Python (ROS 2)
+•	Robot Operating System (ROS 2)
+•	PID control
+•	LiDAR-based obstacle detection
+•	Custom ROS 2 messages
+•	Real-time control logic
+Developed for NXP Semiconductors AIM Contest.
 
-Checks whether any detected object could block the vehicle’s path
+ROS Interfaces
+Subscribed Topics
+Topic	Message Type	Purpose
+/edge_vectors	synapse_msgs/EdgeVectors	Lane edge information
+/scan	sensor_msgs/LaserScan	Obstacle & ramp detection
+/traffic_status	synapse_msgs/TrafficStatus	Traffic state input
 
+Published Topics
+Topic	Message Type	Purpose
+/cerebri/in/joy	sensor_msgs/Joy	Rover motion control
 
-Publishes warnings or slow/stop signals
+Control Strategy
+Steering Control
+•	Steering is derived from edge vector deviation
+•	Uses a PID controller for smooth correction
+•	Handles:
+o	Straight paths (2 vectors)
+o	Curves (1 vector)
+o	Vector loss (0 vectors)
+Speed Control
+•	Default: maximum speed
+•	Reduced speed when:
+o	Ramp detected
+o	Bridge detected
+o	Safety conditions triggered
 
+PID Controller
+The node uses a custom PID controller:
+Kp = 0.0002
+Ki = 0.000005
+Kd = 0.009
+PID input:
+•	Horizontal deviation of lane center from image center
+PID output:
+•	Steering command (turn)
+This ensures stable, oscillation-free motion, especially on curves.
 
-This file ensures the vehicle can respond safely when obstacles appear ahead.
-Overall, these three modules form a simple perception-to-control pipeline: the system detects the lane, computes the steering direction, and responds to obstacles during simulation.
+Edge Vector Handling Logic
+Vector Count	Interpretation	Behavior
+0	Lane lost	Drive straight cautiously
+1	Curve	PID-based turn
+2	Straight road	Center alignment using midpoint
+
+Obstacle Detection (LiDAR)
+•	Front obstacle detection using vertical distance threshold
+•	Dynamic steering adjustment away from obstacle
+•	Turn direction chosen based on obstacle angle
+•	Distance-based turn scaling for smooth avoidance
+Thresholds
+•	Front obstacle distance: < 1.0 m
+•	Horizontal obstacle threshold: < 0.25 m
+
+Ramp & Bridge Detection
+Using LiDAR depth patterns:
+•	Detects front ramps
+•	Detects rear ramps
+•	Reduces speed automatically on ramps
+•	Prevents unstable acceleration on inclined surfaces
+This improves mechanical safety and stability.
+
+Manual Mode Rover Control
+The rover is controlled using sensor_msgs/Joy:
+•	Axis mapping:
+o	Speed → Forward axis
+o	Turn → Steering axis
+•	Allows compatibility with existing rover interfaces
+•	Enables smooth integration with autonomous and manual control pipelines
+
+Safety-Oriented Design
+•	Speed limiting on ramps
+•	Obstacle-aware steering
+•	Graceful behavior when lane data is lost
+•	Bounded steering output to prevent saturation
+
+How to Run
+ros2 run <your_package> ros_line_follower.py
+Make sure the following are running:
+•	Camera node
+•	ros_edge_vectors.py
+•	LiDAR driver
+•	ROS 2 environment sourced
+
+ros_object_recog.py
+
+Traffic Sign & Object Recognition Interface (ROS 2)
+Overview
+ros_object_recog.py is a ROS 2 perception node developed for the NXP AIM (Autonomous Innovation Mission) Contest.
+Its role is to analyze camera images and publish traffic or object-related information that can influence autonomous navigation decisions.
+This node is designed as a modular and extensible interface for traffic sign recognition and high-level scene understanding.
+
+Role in the Autonomous Stack
+Camera
+  ↓
+ros_object_recog.py   (Traffic / Object Perception)
+  ↓
+Traffic Status
+  ↓
+ros_line_follower.py (Decision & Control)
+The node communicates high-level semantic information rather than raw vision data.
+
+Technologies Used
+•	Python (ROS 2)
+•	OpenCV
+•	NumPy
+•	Robot Operating System (ROS 2)
+•	Custom ROS 2 messages
+Developed for NXP Semiconductors AIM Contest.
+
+ROS Interfaces
+Subscribed Topics
+Topic	Message Type	Description
+/camera/image_raw/compressed	sensor_msgs/CompressedImage	Camera input
+
+Published Topics
+Topic	Message Type	Description
+/traffic_status	synapse_msgs/TrafficStatus	Detected traffic/object state
+
+Processing Pipeline
+1.	Receive compressed camera image
+2.	Decode image into OpenCV format
+3.	(Planned) Analyze image for traffic signs or objects
+4.	Publish traffic status message
+5.	Downstream nodes act on semantic information
+
+Current Implementation Status
+•	Image subscription and decoding implemented
+•	Traffic status publisher implemented
+•	Clean ROS 2 node structure ready for expansion
+Intentionally Left Open for Extension
+The recognition logic is left open to allow:
+•	Rule-based detection (color/shape)
+•	Classical OpenCV pipelines
+•	Machine learning models
+•	CNN / YOLO / TensorFlow Lite integration
+This matches NXP AIM’s focus on algorithm design freedom.
+
+Intended Traffic Behaviors
+Examples of logic that can be implemented:
+•	Stop sign detection → vehicle stop
+•	Turn sign detection → left/right turn
+•	Speed limit sign → speed adjustment
+•	Obstacle indicator → cautious mode
+
+Integration with Line Follower
+ros_line_follower.py subscribes to /traffic_status and can:
+•	Override speed
+•	Override steering
+•	Trigger stop conditions
+•	Enable behavior transitions
+This creates a layered autonomy architecture.
+
+How to Run
+ros2 run <your_package> ros_object_recog.py
+Ensure:
+•	Camera node is running
+•	ROS 2 environment is sourced
+•	synapse_msgs package is available
