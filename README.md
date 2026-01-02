@@ -17,29 +17,6 @@ Technologies Used
 •	Camera-based perception
 •	Differential drive rover
 
-Project Architecture
-Camera Input
-     |
-     v
-+----------------------+
-| ros_edge_vectors.py  |
-| (Edge Detection)     |
-+----------------------+
-           |
-           v
-+----------------------+
-| ros_line_follower.py |
-| (Lane Center Control)|
-+----------------------+
-           |
-           v
-+----------------------+
-| ros_object_recog.py  |
-| (Object Detection)   |
-+----------------------+
-           |
-           v
-      Rover Motion
 
 All three ROS nodes run simultaneously, publishing and subscribing to ROS topics to achieve autonomous navigation.
 
